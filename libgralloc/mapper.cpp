@@ -73,7 +73,7 @@ static int gralloc_map(gralloc_module_t const* /*module*/,
             return -errno;
         }
 
-        hnd->base = intptr_t(mappedAddress) + hnd->offset;
+        hnd->base = intptr_t(mappedAddress);
         mappedAddress = MAP_FAILED;
         size = ROUND_UP_PAGESIZE(sizeof(MetaData_t));
         err = memalloc->map_buffer(&mappedAddress, size,
@@ -84,7 +84,7 @@ static int gralloc_map(gralloc_module_t const* /*module*/,
             hnd->base_metadata = 0;
             return -errno;
         }
-        hnd->base_metadata = intptr_t(mappedAddress) + hnd->offset_metadata;
+        hnd->base_metadata = intptr_t(mappedAddress);
     }
     return 0;
 }
@@ -373,17 +373,23 @@ int gralloc_perform(struct gralloc_module_t const* /*module*/,
             {
                 private_handle_t* hnd =  va_arg(args, private_handle_t*);
                 int *stride = va_arg(args, int *);
+#ifndef GRALLOC_PERFORM_COMPAT
                 int *height = va_arg(args, int *);
+#endif
                 if (private_handle_t::validate(hnd)) {
                     return res;
                 }
                 MetaData_t *metadata = (MetaData_t *)hnd->base_metadata;
                 if(metadata && metadata->operation & UPDATE_BUFFER_GEOMETRY) {
                     *stride = metadata->bufferDim.sliceWidth;
+#ifndef GRALLOC_PERFORM_COMPAT
                     *height = metadata->bufferDim.sliceHeight;
+#endif
                 } else {
                     *stride = hnd->width;
+#ifndef GRALLOC_PERFORM_COMPAT
                     *height = hnd->height;
+#endif
                 }
                 res = 0;
             } break;
