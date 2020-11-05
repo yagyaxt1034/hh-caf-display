@@ -449,6 +449,7 @@ ovutils::eDest MDPComp::getMdpPipe(hwc_context_t *ctx, ePipeType type,
         if(mdp_pipe != ovutils::OV_INVALID) {
             return mdp_pipe;
         }
+        [[fallthrough]];
     case MDPCOMP_OV_ANY:
     case MDPCOMP_OV_RGB:
         mdp_pipe = ov.nextPipe(ovutils::OV_MDP_PIPE_RGB, mDpy, mixer,
@@ -461,6 +462,7 @@ ovutils::eDest MDPComp::getMdpPipe(hwc_context_t *ctx, ePipeType type,
             //Requested only for RGB pipe
             break;
         }
+        [[fallthrough]];
     case  MDPCOMP_OV_VG:
         return ov.nextPipe(ovutils::OV_MDP_PIPE_VG, mDpy, mixer,
                            Overlay::FORMAT_YUV);
@@ -993,8 +995,8 @@ bool MDPComp::cacheBasedComp(hwc_context_t *ctx,
 
     //If an MDP marked layer is unsupported cannot do partial MDP Comp
     for(int i = 0; i < numAppLayers; i++) {
-        hwc_layer_1_t* layer = &list->hwLayers[i];
         if(!mCurrentFrame.isFBComposed[i]) {
+            hwc_layer_1_t* layer = &list->hwLayers[i];
             if(not isSupportedForMDPComp(ctx, layer)) {
                 ALOGD_IF(isDebug(), "%s: Unsupported layer in list",
                         __FUNCTION__);
@@ -1558,32 +1560,18 @@ bool MDPComp::hwLimitationsCheck(hwc_context_t* ctx,
     return true;
 }
 
-// Checks only if videos or single layer(RGB) is updating
-// which is used for setting dynamic fps or perf hint for single
-// layer video playback
-bool MDPComp::onlyVideosUpdating(hwc_context_t *ctx,
-                                hwc_display_contents_1_t* list) {
-    bool support = false;
-    FrameInfo frame;
-    frame.reset(mCurrentFrame.layerCount);
-    memset(&frame.drop, 0, sizeof(frame.drop));
-    frame.dropCount = 0;
-    ALOGD_IF(isDebug(), "%s: Update Cache and YUVInfo", __FUNCTION__);
-    updateLayerCache(ctx, list, frame);
-    updateYUV(ctx, list, false /*secure only*/, frame);
-    // There are only updating YUV layers or there is single RGB
-    // Layer(Youtube)
-    if((ctx->listStats[mDpy].yuvCount == frame.mdpCount) ||
-                                        (frame.layerCount == 1)) {
-        support = true;
-    }
-    return support;
-}
-
 void MDPComp::setDynRefreshRate(hwc_context_t *ctx, hwc_display_contents_1_t* list) {
     //For primary display, set the dynamic refreshrate
     if(!mDpy && qdutils::MDPVersion::getInstance().isDynFpsSupported() &&
                                         ctx->mUseMetaDataRefreshRate) {
+        FrameInfo frame;
+        frame.reset(mCurrentFrame.layerCount);
+        memset(&frame.drop, 0, sizeof(frame.drop));
+        frame.dropCount = 0;
+        ALOGD_IF(isDebug(), "%s: Update Cache and YUVInfo for Dyn Refresh Rate",
+                 __FUNCTION__);
+        updateLayerCache(ctx, list, frame);
+        updateYUV(ctx, list, false /*secure only*/, frame);
         uint32_t refreshRate = ctx->dpyAttr[mDpy].refreshRate;
         MDPVersion& mdpHw = MDPVersion::getInstance();
         if(sIdleFallBack) {

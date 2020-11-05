@@ -33,6 +33,9 @@
 #include <overlayUtils.h>
 #include <EGL/egl.h>
 
+#ifdef QTI_BSP
+#include <hardware/display_defs.h>
+#endif
 
 #define ALIGN_TO(x, align)     (((x) + ((align)-1)) & ~((align)-1))
 #define LIKELY( exp )       (__builtin_expect( (exp) != 0, true  ))
@@ -299,6 +302,8 @@ void getActionSafePosition(hwc_context_t *ctx, int dpy, hwc_rect_t& dst);
 
 void getAspectRatioPosition(hwc_context_t* ctx, int dpy, int extOrientation,
                                 hwc_rect_t& inRect, hwc_rect_t& outRect);
+
+uint32_t getRefreshRate(hwc_context_t* ctx, uint32_t requestedRefreshRate);
 
 uint32_t roundOff(uint32_t refreshRate);
 

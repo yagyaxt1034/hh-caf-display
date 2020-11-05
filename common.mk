@@ -4,6 +4,7 @@ common_includes += $(call project-path-for,qcom-display)/liboverlay
 common_includes += $(call project-path-for,qcom-display)/libcopybit
 common_includes += $(call project-path-for,qcom-display)/libqdutils
 common_includes += $(call project-path-for,qcom-display)/libhwcomposer
+common_includes += $(call project-path-for,qcom-display)/libexternal
 common_includes += $(call project-path-for,qcom-display)/libqservice
 common_includes += $(call project-path-for,qcom-display)/libvirtual
 common_includes += $(call project-path-for,qcom-display)/libhdmi
@@ -37,9 +38,9 @@ ifeq ($(call is-board-platform-in-list, mpq8092 msm_bronze msm8916), true)
     common_flags += -DVPU_TARGET
 endif
 
-
-common_deps  :=
-kernel_includes :=
+ifeq ($(DISPLAY_DEBUG_SWAPINTERVAL),true)
+    common_flags += -DDEBUG_SWAPINTERVAL
+endif
 
 # Executed only on QCOM BSPs
 ifeq ($(TARGET_USES_QCOM_BSP),true)

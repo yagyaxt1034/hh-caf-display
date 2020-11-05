@@ -450,8 +450,12 @@ static int hwc_setPowerMode(struct hwc_composer_device_1* dev, int dpy,
     // Ideally, we should get an explicit blank on the virtual display
     // or, the blank frames when the virtual display is blanking should
     // be sent _before_ the primary is unblanked
+<<<<<<< HEAD
     if (dpy == HWC_DISPLAY_PRIMARY && not (mode == HWC_POWER_MODE_OFF ||
                 mode == HWC_POWER_MODE_NORMAL)) {
+=======
+    if (dpy == HWC_DISPLAY_PRIMARY && not (mode == HWC_POWER_MODE_OFF)) {
+>>>>>>> lineage/lineage-18.0-caf-msm8974
         ctx->mOverlay->configBegin();
         ctx->mOverlay->configDone();
         ctx->mRotMgr->clear();
@@ -486,6 +490,10 @@ static int hwc_setPowerMode(struct hwc_composer_device_1* dev, int dpy,
         }
         //Deliberate fall through since there is no explicit power mode for
         //virtual displays.
+<<<<<<< HEAD
+=======
+        [[fallthrough]];
+>>>>>>> lineage/lineage-18.0-caf-msm8974
     case HWC_DISPLAY_VIRTUAL:
         if(ctx->dpyAttr[HWC_DISPLAY_VIRTUAL].connected) {
             const int dpy = HWC_DISPLAY_VIRTUAL;

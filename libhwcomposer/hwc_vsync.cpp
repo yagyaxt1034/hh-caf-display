@@ -20,6 +20,7 @@
 
 #include <cutils/properties.h>
 #include <cutils/iosched_policy.h>
+#include <bfqio/bfqio.h>
 #include <utils/Log.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -70,12 +71,9 @@ static void handle_vsync_event(hwc_context_t* ctx, int dpy, char *data)
 static void handle_blank_event(hwc_context_t* ctx, int dpy, char *data)
 {
     if (!strncmp(data, PANEL_ON_STR, strlen(PANEL_ON_STR))) {
-        uint32_t poweron;
-        ctx->mDrawLock.lock();
-        poweron = strtoul(data + strlen(PANEL_ON_STR), NULL, 0);
+        uint32_t poweron = strtoul(data + strlen(PANEL_ON_STR), NULL, 0);
         ALOGI("%s: dpy:%d panel power state: %d", __FUNCTION__, dpy, poweron);
         ctx->dpyAttr[dpy].isActive = poweron ? true: false;
-        ctx->mDrawLock.unlock();
     }
 }
 
@@ -99,6 +97,11 @@ static void *vsync_loop(void *param)
     prctl(PR_SET_NAME, (unsigned long) &thread_name, 0, 0, 0);
     androidSetThreadPriority(0, HAL_PRIORITY_URGENT_DISPLAY +
                 android::PRIORITY_MORE_FAVORABLE);
+    struct sched_param sched_param = {0};
+    sched_param.sched_priority = 5;
+    if (sched_setscheduler(gettid(), SCHED_FIFO, &sched_param) != 0) {
+        ALOGE("Couldn't set SCHED_FIFO for hwc_vsync");
+    }
     android_set_rt_ioprio(0, 1);
 
     char vdata[MAX_DATA];
@@ -156,7 +159,7 @@ static void *vsync_loop(void *param)
 
     if (LIKELY(!ctx->vstate.fakevsync)) {
         do {
-            int err = poll(*pfd, num_displays * num_events, -1);
+            int err = poll(reinterpret_cast<struct pollfd *>(pfd), num_displays * num_events, -1);
             if(err > 0) {
                 for (int dpy = HWC_DISPLAY_PRIMARY; dpy < num_displays; dpy++) {
                     for(size_t ev = 0; ev < num_events; ev++) {
@@ -165,6 +168,7 @@ static void *vsync_loop(void *param)
                             memset(&vdata, '\0', sizeof(vdata));
                             ssize_t len = pread(pfd[dpy][ev].fd, vdata,
                                                 MAX_DATA - 1, 0);
+                            err = pread(pfd[dpy][ev].fd, vdata, MAX_DATA, 0);
                             if (UNLIKELY(err < 0)) {
                                 // If the read was just interrupted - it is not
                                 // a fatal error. Just continue in this case
